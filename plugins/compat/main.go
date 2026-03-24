@@ -13,7 +13,15 @@ const PluginName = "compat"
 
 // Config defines the configuration for the compat plugin.
 type Config struct {
-	Enabled bool `json:"enabled"`
+	ConvertTextToChat      bool `json:"convert_text_to_chat"`
+	ConvertChatToResponses bool `json:"convert_chat_to_responses"`
+	ShouldDropParams       bool `json:"should_drop_params"`
+	ShouldConvertParams    bool `json:"should_convert_params"`
+}
+
+// IsEnabled returns true if any compat feature is enabled
+func (c Config) IsEnabled() bool {
+	return c.ConvertTextToChat || c.ConvertChatToResponses || c.ShouldDropParams || c.ShouldConvertParams
 }
 
 // CompatPlugin provides LiteLLM-compatible request/response transformations.
@@ -67,20 +75,26 @@ func (p *CompatPlugin) PreLLMHook(ctx *schemas.BifrostContext, req *schemas.Bifr
 		return req, nil, nil
 	}
 
-	// text completion → chat conversion
-	if (req.RequestType == schemas.TextCompletionRequest || req.RequestType == schemas.TextCompletionStreamRequest) && req.TextCompletionRequest != nil {
-		p.markForConversion(ctx, req.TextCompletionRequest.Provider, req.TextCompletionRequest.Model, schemas.TextCompletionRequest, schemas.ChatCompletionRequest)
-	}
-
-	// chat completion → responses conversion
-	if (req.RequestType == schemas.ChatCompletionRequest || req.RequestType == schemas.ChatCompletionStreamRequest) && req.ChatRequest != nil {
-		p.markForConversion(ctx, req.ChatRequest.Provider, req.ChatRequest.Model, schemas.ChatCompletionRequest, schemas.ResponsesRequest)
-	}
-
 	modifiedReq := cloneBifrostReq(req)
 	p.droppedParams = nil
-	if p.modelCatalog != nil {
-		_, model, _ := req.GetRequestFields()
+
+	// Text completion → chat conversion
+	if p.config.ConvertTextToChat {
+		if (modifiedReq.RequestType == schemas.TextCompletionRequest || modifiedReq.RequestType == schemas.TextCompletionStreamRequest) && modifiedReq.TextCompletionRequest != nil {
+			p.markForConversion(ctx, modifiedReq.TextCompletionRequest.Provider, modifiedReq.TextCompletionRequest.Model, schemas.TextCompletionRequest, schemas.ChatCompletionRequest)
+		}
+	}
+
+	// Chat completion → responses conversion
+	if p.config.ConvertChatToResponses {
+		if (modifiedReq.RequestType == schemas.ChatCompletionRequest || modifiedReq.RequestType == schemas.ChatCompletionStreamRequest) && modifiedReq.ChatRequest != nil {
+			p.markForConversion(ctx, modifiedReq.ChatRequest.Provider, modifiedReq.ChatRequest.Model, schemas.ChatCompletionRequest, schemas.ResponsesRequest)
+		}
+	}
+
+	// Compute unsupported parameters to drop based on model catalog allowlist
+	if p.config.ShouldDropParams && p.modelCatalog != nil {
+		_, model, _ := modifiedReq.GetRequestFields()
 		if model != "" {
 			if supportedParams := p.modelCatalog.GetSupportedParameters(model); supportedParams != nil {
 				droppedParams := dropUnsupportedParams(modifiedReq, supportedParams)
@@ -91,7 +105,9 @@ func (p *CompatPlugin) PreLLMHook(ctx *schemas.BifrostContext, req *schemas.Bifr
 		}
 	}
 
-	applyParameterConversion(modifiedReq)
+	if p.config.ShouldConvertParams {
+		applyParameterConversion(modifiedReq)
+	}
 
 	return modifiedReq, nil, nil
 }
