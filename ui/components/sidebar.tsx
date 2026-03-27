@@ -10,7 +10,6 @@ import {
 	Building2,
 	ChartColumnBig,
 	ChevronsLeftRightEllipsis,
-	CircleDollarSign,
 	Construction,
 	DatabaseZap,
 	FlaskConical,
@@ -24,7 +23,6 @@ import {
 	Network,
 	PanelLeftClose,
 	Puzzle,
-	Router,
 	ScrollText,
 	Search,
 	SearchCheck,
@@ -34,7 +32,6 @@ import {
 	ShieldUser,
 	Shuffle,
 	SlidersHorizontal,
-	SquareTerminal,
 	Telescope,
 	ToolCase,
 	TrendingUp,
@@ -42,7 +39,7 @@ import {
 	UserRoundCheck,
 	Users,
 	Wallet,
-	WalletCards,
+	WalletCards
 } from "lucide-react";
 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -677,24 +674,8 @@ export default function AppSidebar() {
 							url: "/workspace/prompt-repo",
 							icon: FolderGit,
 							description: "Prompt repository",
-							hasAccess: hasPromptRepositoryAccess || hasPromptDeploymentStrategyAccess,
-							subItems: [
-								{
-									title: "Prompts",
-									url: "/workspace/prompt-repo/prompts",
-									icon: SquareTerminal,
-									description: "Manage prompts",
-									hasAccess: hasPromptRepositoryAccess,
-									tag: "Beta",
-								},
-								{
-									title: "Deployments",
-									url: "/workspace/prompt-repo/deployments",
-									icon: Router,
-									description: "Manage deployment",
-									hasAccess: hasPromptDeploymentStrategyAccess,
-								},
-							],
+							hasAccess: hasPromptRepositoryAccess,
+							tag: "Beta",
 						},
 					]
 				: []),
