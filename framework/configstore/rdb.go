@@ -1478,6 +1478,44 @@ func (s *RDBConfigStore) UpdateConfig(ctx context.Context, config *tables.TableG
 	return txDB.WithContext(ctx).Save(config).Error
 }
 
+// GetComplexityTierBoundaries retrieves the complexity tier boundaries from governance_config.
+func (s *RDBConfigStore) GetComplexityTierBoundaries(ctx context.Context) (*ComplexityTierBoundaries, error) {
+	configEntry, err := s.GetConfig(ctx, tables.ConfigComplexityTierBoundariesKey)
+	if err != nil {
+		if errors.Is(err, ErrNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	if configEntry == nil || configEntry.Value == "" {
+		return nil, nil
+	}
+
+	var boundaries ComplexityTierBoundaries
+	if err := json.Unmarshal([]byte(configEntry.Value), &boundaries); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal complexity tier boundaries: %w", err)
+	}
+
+	return &boundaries, nil
+}
+
+// UpdateComplexityTierBoundaries upserts the complexity tier boundaries in governance_config.
+func (s *RDBConfigStore) UpdateComplexityTierBoundaries(ctx context.Context, boundaries *ComplexityTierBoundaries) error {
+	if boundaries == nil {
+		return fmt.Errorf("complexity tier boundaries is nil")
+	}
+
+	configJSON, err := json.Marshal(boundaries)
+	if err != nil {
+		return fmt.Errorf("failed to marshal complexity tier boundaries: %w", err)
+	}
+
+	return s.db.WithContext(ctx).Save(&tables.TableGovernanceConfig{
+		Key:   tables.ConfigComplexityTierBoundariesKey,
+		Value: string(configJSON),
+	}).Error
+}
+
 // GetModelPrices retrieves all model pricing records from the database.
 func (s *RDBConfigStore) GetModelPrices(ctx context.Context) ([]tables.TableModelPricing, error) {
 	var modelPrices []tables.TableModelPricing
@@ -3378,6 +3416,7 @@ func (s *RDBConfigStore) GetGovernanceConfig(ctx context.Context) (*GovernanceCo
 		return nil, nil
 	}
 	var authConfig *AuthConfig
+	var complexityTierBoundaries *ComplexityTierBoundaries
 	if len(governanceConfigs) > 0 {
 		// Checking if username and password is present
 		var username *string
@@ -3394,6 +3433,15 @@ func (s *RDBConfigStore) GetGovernanceConfig(ctx context.Context) (*GovernanceCo
 				isEnabled = entry.Value == "true"
 			case tables.ConfigDisableAuthOnInferenceKey:
 				disableAuthOnInference = entry.Value == "true"
+			case tables.ConfigComplexityTierBoundariesKey:
+				var boundaries ComplexityTierBoundaries
+				if err := json.Unmarshal([]byte(entry.Value), &boundaries); err != nil {
+					if s.logger != nil {
+						s.logger.Warn("failed to unmarshal complexity tier boundaries from governance_config: %v", err)
+					}
+					continue
+				}
+				complexityTierBoundaries = &boundaries
 			}
 		}
 		if username != nil && password != nil {
@@ -3406,15 +3454,16 @@ func (s *RDBConfigStore) GetGovernanceConfig(ctx context.Context) (*GovernanceCo
 		}
 	}
 	return &GovernanceConfig{
-		VirtualKeys:  virtualKeys,
-		Teams:        teams,
-		Customers:    customers,
-		Budgets:      budgets,
-		RateLimits:   rateLimits,
-		ModelConfigs: modelConfigs,
-		Providers:    providers,
-		RoutingRules: routingRules,
-		AuthConfig:   authConfig,
+		VirtualKeys:             virtualKeys,
+		Teams:                   teams,
+		Customers:               customers,
+		Budgets:                 budgets,
+		RateLimits:              rateLimits,
+		ModelConfigs:            modelConfigs,
+		Providers:               providers,
+		RoutingRules:            routingRules,
+		AuthConfig:              authConfig,
+		ComplexityTierBoundaries: complexityTierBoundaries,
 	}, nil
 }
 

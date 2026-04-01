@@ -1202,14 +1202,22 @@ type ConfigMap map[schemas.ModelProvider]ProviderConfig
 // GovernanceConfig contains governance entities loaded from the config store or
 // reconciled from config.json.
 type GovernanceConfig struct {
-	VirtualKeys      []tables.TableVirtualKey      `json:"virtual_keys"`
-	Teams            []tables.TableTeam            `json:"teams"`
-	Customers        []tables.TableCustomer        `json:"customers"`
-	Budgets          []tables.TableBudget          `json:"budgets"`
-	RateLimits       []tables.TableRateLimit       `json:"rate_limits"`
-	ModelConfigs     []tables.TableModelConfig     `json:"model_configs"`
-	Providers        []tables.TableProvider        `json:"providers"`
-	RoutingRules     []tables.TableRoutingRule     `json:"routing_rules"`
+	VirtualKeys          []tables.TableVirtualKey      `json:"virtual_keys"`
+	Teams                []tables.TableTeam            `json:"teams"`
+	Customers            []tables.TableCustomer        `json:"customers"`
+	Budgets              []tables.TableBudget          `json:"budgets"`
+	RateLimits           []tables.TableRateLimit       `json:"rate_limits"`
+	ModelConfigs         []tables.TableModelConfig     `json:"model_configs"`
+	Providers            []tables.TableProvider        `json:"providers"`
+	RoutingRules         []tables.TableRoutingRule     `json:"routing_rules"`
 	PricingOverrides []tables.TablePricingOverride `json:"pricing_overrides,omitempty"`
-	AuthConfig       *AuthConfig                   `json:"auth_config,omitempty"`
+	AuthConfig           *AuthConfig                   `json:"auth_config,omitempty"`
+	ComplexityTierBoundaries *ComplexityTierBoundaries `json:"complexity_tier_boundaries,omitempty"`
+}
+
+// ComplexityTierBoundaries defines the score thresholds for tier classification.
+type ComplexityTierBoundaries struct {
+	SimpleMedium     float64 `json:"simple_medium"`
+	MediumComplex    float64 `json:"medium_complex"`
+	ComplexReasoning float64 `json:"complex_reasoning"`
 }

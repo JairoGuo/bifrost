@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/cel-go/cel"
@@ -27,8 +28,9 @@ type LocalGovernanceStore struct {
 	rateLimits   sync.Map // string -> *RateLimit (RateLimit ID -> RateLimit)
 	modelConfigs sync.Map // string -> *ModelConfig (key: "modelName" or "modelName:provider" -> ModelConfig)
 	providers    sync.Map // string -> *Provider (Provider name -> Provider with preloaded relationships)
-	routingRules sync.Map // string -> []*TableRoutingRule (key: "scope:scopeID" -> rules, scopeID="" for global)
-	users        sync.Map // string -> *UserGovernance (User ID -> UserGovernance, enterprise-only)
+	routingRules        sync.Map    // string -> []*TableRoutingRule (key: "scope:scopeID" -> rules, scopeID="" for global)
+	hasComplexityRules  atomic.Bool // true if any enabled routing rule CEL expression references "complexity_tier"
+	users               sync.Map    // string -> *UserGovernance (User ID -> UserGovernance, enterprise-only)
 
 	// Last DB usages for budgets and rate limits
 	LastDBUsagesBudgetsMu            sync.RWMutex       // Last DB usages for budgets
@@ -149,6 +151,7 @@ type GovernanceStore interface {
 	GetBudgetAndRateLimitStatus(ctx context.Context, model string, provider schemas.ModelProvider, vk *configstoreTables.TableVirtualKey, budgetBaselines map[string]float64, tokenBaselines map[string]int64, requestBaselines map[string]int64) *BudgetAndRateLimitStatus
 	// Routing Rules CRUD
 	HasRoutingRules(ctx context.Context) bool
+	HasComplexityRules() bool
 	GetAllRoutingRules() []*configstoreTables.TableRoutingRule
 	GetScopedRoutingRules(scope string, scopeID string) []*configstoreTables.TableRoutingRule
 	UpdateRoutingRuleInMemory(rule *configstoreTables.TableRoutingRule) error
@@ -2277,6 +2280,8 @@ func (gs *LocalGovernanceStore) rebuildInMemoryStructures(ctx context.Context, c
 	}
 	gs.LastDBUsagesRateLimitsTokensMu.Unlock()
 	gs.LastDBUsagesRateLimitsRequestsMu.Unlock()
+
+	gs.recomputeHasComplexityRules()
 }
 
 // UTILITY FUNCTIONS
@@ -3318,6 +3323,30 @@ func (gs *LocalGovernanceStore) HasRoutingRules(ctx context.Context) bool {
 	return hasAny
 }
 
+// HasComplexityRules returns true if any enabled routing rule references complexity in its CEL expression.
+func (gs *LocalGovernanceStore) HasComplexityRules() bool {
+	return gs.hasComplexityRules.Load()
+}
+
+// recomputeHasComplexityRules scans all routing rules and updates the hasComplexityRules flag.
+func (gs *LocalGovernanceStore) recomputeHasComplexityRules() {
+	has := false
+	gs.routingRules.Range(func(_, value interface{}) bool {
+		rules, ok := value.([]*configstoreTables.TableRoutingRule)
+		if !ok {
+			return true
+		}
+		for _, r := range rules {
+			if r.Enabled && strings.Contains(r.CelExpression, "complexity_tier") {
+				has = true
+				return false
+			}
+		}
+		return true
+	})
+	gs.hasComplexityRules.Store(has)
+}
+
 // GetAllRoutingRules gets all routing rules from in-memory cache
 func (gs *LocalGovernanceStore) GetAllRoutingRules() []*configstoreTables.TableRoutingRule {
 	var result []*configstoreTables.TableRoutingRule
@@ -3734,6 +3763,7 @@ func (gs *LocalGovernanceStore) UpdateRoutingRuleInMemory(rule *configstoreTable
 		gs.logger.Warn("Failed to recompile routing program for rule %s: %v", rule.Name, err)
 	}
 
+	gs.recomputeHasComplexityRules()
 	return nil
 }
 
@@ -3766,5 +3796,6 @@ func (gs *LocalGovernanceStore) DeleteRoutingRuleInMemory(id string) error {
 	// Invalidate compiled program cache for this rule
 	gs.compiledRoutingPrograms.Delete(id)
 
+	gs.recomputeHasComplexityRules()
 	return nil
 }
