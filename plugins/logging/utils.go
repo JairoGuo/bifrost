@@ -418,21 +418,20 @@ func (p *LoggerPlugin) extractInputHistory(request *schemas.BifrostRequest) ([]s
 		if request.EmbeddingRequest.Input == nil {
 			return []schemas.ChatMessage{}, []schemas.ResponsesMessage{}
 		}
-		texts := request.EmbeddingRequest.Input.Texts
 
-		if len(texts) == 0 && request.EmbeddingRequest.Input.Text != nil {
-			texts = []string{*request.EmbeddingRequest.Input.Text}
-		}
-
-		contentBlocks := make([]schemas.ChatContentBlock, len(texts))
-		for i, text := range texts {
-			// Create a per-iteration copy to avoid reusing the same memory address
-			t := text
-			contentBlocks[i] = schemas.ChatContentBlock{
-				Type: schemas.ChatContentBlockTypeText,
-				Text: &t,
+		var contentBlocks []schemas.ChatContentBlock
+		for _, content := range request.EmbeddingRequest.Input.Contents {
+			for _, part := range content {
+				if part.Type == schemas.EmbeddingContentPartTypeText && part.Text != nil {
+					t := *part.Text
+					contentBlocks = append(contentBlocks, schemas.ChatContentBlock{
+						Type: schemas.ChatContentBlockTypeText,
+						Text: &t,
+					})
+				}
 			}
 		}
+
 		return []schemas.ChatMessage{
 			{
 				Role: schemas.ChatMessageRoleUser,

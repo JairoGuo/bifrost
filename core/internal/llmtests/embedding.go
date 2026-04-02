@@ -58,12 +58,15 @@ func RunEmbeddingTest(t *testing.T, client *bifrost.Bifrost, ctx context.Context
 			"Goodnight, moon!",
 		}
 
+		contents := make([]schemas.EmbeddingContent, len(testTexts))
+		for i, text := range testTexts {
+			t := text
+			contents[i] = schemas.EmbeddingContent{{Type: schemas.EmbeddingContentPartTypeText, Text: &t}}
+		}
 		request := &schemas.BifrostEmbeddingRequest{
 			Provider: testConfig.Provider,
 			Model:    testConfig.EmbeddingModel,
-			Input: &schemas.EmbeddingInput{
-				Texts: testTexts,
-			},
+			Input:    &schemas.EmbeddingInput{Contents: contents},
 			Params: &schemas.EmbeddingParameters{
 				EncodingFormat: bifrost.Ptr("float"),
 			},

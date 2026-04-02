@@ -63,7 +63,7 @@ func (plugin *Plugin) generateEmbedding(ctx *schemas.BifrostContext, text string
 		Provider: plugin.config.Provider,
 		Model:    plugin.config.EmbeddingModel,
 		Input: &schemas.EmbeddingInput{
-			Text: &text,
+			Contents: []schemas.EmbeddingContent{{{Type: schemas.EmbeddingContentPartTypeText, Text: &text}}},
 		},
 	}
 
@@ -444,18 +444,16 @@ func (plugin *Plugin) extractTextForEmbedding(req *schemas.BifrostRequest) (stri
 			return "", "", fmt.Errorf("failed to marshal metadata for metadata hash: %w", err)
 		}
 
-		texts := req.EmbeddingRequest.Input.Texts
-
-		if len(texts) == 0 && req.EmbeddingRequest.Input.Text != nil {
-			texts = []string{*req.EmbeddingRequest.Input.Text}
+		var textParts []string
+		for _, content := range req.EmbeddingRequest.Input.Contents {
+			for _, part := range content {
+				if part.Type == schemas.EmbeddingContentPartTypeText && part.Text != nil {
+					textParts = append(textParts, *part.Text)
+				}
+			}
 		}
 
-		var text string
-		for _, t := range texts {
-			text += t + " "
-		}
-
-		return strings.TrimSpace(text), metadataHash, nil
+		return strings.TrimSpace(strings.Join(textParts, " ")), metadataHash, nil
 
 	case req.TranscriptionRequest != nil:
 		// Skip semantic caching for transcription requests
@@ -766,35 +764,22 @@ func (plugin *Plugin) getNormalizedInputForCaching(req *schemas.BifrostRequest) 
 	case schemas.SpeechRequest, schemas.SpeechStreamRequest:
 		return normalizeText(req.SpeechRequest.Input.Input)
 	case schemas.EmbeddingRequest:
-		// Create a deep copy of the input to avoid mutating the original request
-		copiedInput := schemas.EmbeddingInput{}
-		if req.EmbeddingRequest.Input.Text != nil {
-			copiedText := *req.EmbeddingRequest.Input.Text
-			copiedInput.Text = &copiedText
-		} else if len(req.EmbeddingRequest.Input.Texts) > 0 {
-			copiedTexts := make([]string, len(req.EmbeddingRequest.Input.Texts))
-			copy(copiedTexts, req.EmbeddingRequest.Input.Texts)
-			copiedInput.Texts = copiedTexts
-		} else if req.EmbeddingRequest.Input.Embedding != nil {
-			copiedEmbedding := make([]int, len(req.EmbeddingRequest.Input.Embedding))
-			copy(copiedEmbedding, req.EmbeddingRequest.Input.Embedding)
-			copiedInput.Embedding = copiedEmbedding
-		} else if req.EmbeddingRequest.Input.Embeddings != nil {
-			copiedEmbeddings := make([][]int, len(req.EmbeddingRequest.Input.Embeddings))
-			copy(copiedEmbeddings, req.EmbeddingRequest.Input.Embeddings)
-			copiedInput.Embeddings = copiedEmbeddings
-		}
-		if copiedInput.Text != nil {
-			normalizedText := normalizeText(*copiedInput.Text)
-			copiedInput.Text = &normalizedText
-		} else if len(copiedInput.Texts) > 0 {
-			normalizedTexts := make([]string, len(copiedInput.Texts))
-			for i, text := range copiedInput.Texts {
-				normalizedTexts[i] = normalizeText(text)
+		// Deep copy Contents and normalize all text parts.
+		src := req.EmbeddingRequest.Input.Contents
+		copiedContents := make([]schemas.EmbeddingContent, len(src))
+		for i, content := range src {
+			copiedContent := make(schemas.EmbeddingContent, len(content))
+			for j, part := range content {
+				copied := part
+				if part.Type == schemas.EmbeddingContentPartTypeText && part.Text != nil {
+					normalized := normalizeText(*part.Text)
+					copied.Text = &normalized
+				}
+				copiedContent[j] = copied
 			}
-			copiedInput.Texts = normalizedTexts
+			copiedContents[i] = copiedContent
 		}
-		return copiedInput
+		return schemas.EmbeddingInput{Contents: copiedContents}
 	case schemas.TranscriptionRequest, schemas.TranscriptionStreamRequest:
 		return req.TranscriptionRequest.Input
 	case schemas.ImageGenerationRequest, schemas.ImageGenerationStreamRequest:

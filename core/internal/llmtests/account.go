@@ -41,7 +41,8 @@ type TestScenarios struct {
 	SpeechSynthesisStream      bool // Streaming text-to-speech functionality
 	Transcription              bool // Speech-to-text functionality
 	TranscriptionStream        bool // Streaming speech-to-text functionality
-	Embedding                  bool // Embedding functionality
+	Embedding                  bool // Embedding functionality (text)
+	MultimodalEmbedding        bool // Multimodal embedding functionality (text + image)
 	Reasoning                  bool // Reasoning/thinking functionality via Responses API
 	PromptCaching              bool // Prompt caching functionality
 	ListModels                 bool // List available models functionality
@@ -100,6 +101,7 @@ type ComprehensiveTestConfig struct {
 	VisionModel              string
 	ReasoningModel           string
 	EmbeddingModel           string
+	MultimodalEmbeddingModel string // Model for multimodal embedding tests (text + image)
 	RerankModel              string
 	TranscriptionModel       string
 	SpeechSynthesisModel     string
@@ -306,7 +308,7 @@ func (account *ComprehensiveTestAccount) GetKeysForProvider(ctx context.Context,
 		return []schemas.Key{
 			{
 				Value:  *schemas.NewEnvVar("env.VERTEX_API_KEY"),
-				Models: []string{"text-multilingual-embedding-002", "google/gemini-2.0-flash-001", "gemini-2.5-flash-image", "imagen-4.0-generate-001", "imagen-3.0-capability-001", "semantic-ranker-default@latest", "semantic-ranker-default-004"},
+				Models: []string{"text-multilingual-embedding-002", "google/gemini-2.0-flash-001", "gemini-2.5-flash-image", "imagen-4.0-generate-001", "imagen-3.0-capability-001", "semantic-ranker-default@latest", "semantic-ranker-default-004", "multimodalembedding@001"},
 				Weight: 1.0,
 				VertexKeyConfig: &schemas.VertexKeyConfig{
 					ProjectID:       *schemas.NewEnvVar("env.VERTEX_PROJECT_ID"),
@@ -810,7 +812,7 @@ var AllProviderConfigs = []ComprehensiveTestConfig{
 			CompletionStream:           true,
 			MultiTurnConversation:      true,
 			ToolCalls:                  true,
-			ToolCallsStreaming:                  true,
+			ToolCallsStreaming:         true,
 			MultipleToolCalls:          true,
 			MultipleToolCallsStreaming: true,
 			End2EndToolCalling:         true,
@@ -867,7 +869,7 @@ var AllProviderConfigs = []ComprehensiveTestConfig{
 			CompletionStream:           true,
 			MultiTurnConversation:      true,
 			ToolCalls:                  true,
-			ToolCallsStreaming:                  true,
+			ToolCallsStreaming:         true,
 			MultipleToolCalls:          true,
 			MultipleToolCallsStreaming: true,
 			End2EndToolCalling:         true,
@@ -911,7 +913,7 @@ var AllProviderConfigs = []ComprehensiveTestConfig{
 			CompletionStream:           true,
 			MultiTurnConversation:      true,
 			ToolCalls:                  true,
-			ToolCallsStreaming:                  true,
+			ToolCallsStreaming:         true,
 			MultipleToolCalls:          true,
 			MultipleToolCallsStreaming: true,
 			End2EndToolCalling:         true,
@@ -958,7 +960,7 @@ var AllProviderConfigs = []ComprehensiveTestConfig{
 			CompletionStream:           true,
 			MultiTurnConversation:      true,
 			ToolCalls:                  true,
-			ToolCallsStreaming:                  true,
+			ToolCallsStreaming:         true,
 			MultipleToolCalls:          true,
 			MultipleToolCallsStreaming: true,
 			End2EndToolCalling:         true,
@@ -999,7 +1001,7 @@ var AllProviderConfigs = []ComprehensiveTestConfig{
 			CompletionStream:           true,
 			MultiTurnConversation:      true,
 			ToolCalls:                  true,
-			ToolCallsStreaming:                  true,
+			ToolCallsStreaming:         true,
 			MultipleToolCalls:          true,
 			MultipleToolCallsStreaming: true,
 			End2EndToolCalling:         true,
@@ -1049,7 +1051,7 @@ var AllProviderConfigs = []ComprehensiveTestConfig{
 			CompletionStream:           true,
 			MultiTurnConversation:      true,
 			ToolCalls:                  true,
-			ToolCallsStreaming:                  true,
+			ToolCallsStreaming:         true,
 			MultipleToolCalls:          true,
 			MultipleToolCallsStreaming: true,
 			End2EndToolCalling:         true,
@@ -1085,7 +1087,7 @@ var AllProviderConfigs = []ComprehensiveTestConfig{
 			SimpleChat:                 true,
 			MultiTurnConversation:      true,
 			ToolCalls:                  true,
-			ToolCallsStreaming:                  true,
+			ToolCallsStreaming:         true,
 			MultipleToolCalls:          true,
 			MultipleToolCallsStreaming: true,
 			End2EndToolCalling:         true,
@@ -1121,7 +1123,7 @@ var AllProviderConfigs = []ComprehensiveTestConfig{
 			CompletionStream:           true,
 			MultiTurnConversation:      true,
 			ToolCalls:                  true,
-			ToolCallsStreaming:                  true,
+			ToolCallsStreaming:         true,
 			MultipleToolCalls:          true,
 			MultipleToolCallsStreaming: true,
 			End2EndToolCalling:         true,
@@ -1157,7 +1159,7 @@ var AllProviderConfigs = []ComprehensiveTestConfig{
 			CompletionStream:           true,
 			MultiTurnConversation:      true,
 			ToolCalls:                  true,
-			ToolCallsStreaming:                  true,
+			ToolCallsStreaming:         true,
 			MultipleToolCalls:          true,
 			MultipleToolCallsStreaming: true,
 			End2EndToolCalling:         true,
@@ -1193,7 +1195,7 @@ var AllProviderConfigs = []ComprehensiveTestConfig{
 			CompletionStream:           true,
 			MultiTurnConversation:      true,
 			ToolCalls:                  true,
-			ToolCallsStreaming:                  true,
+			ToolCallsStreaming:         true,
 			MultipleToolCalls:          true,
 			MultipleToolCallsStreaming: true,
 			End2EndToolCalling:         true,
@@ -1234,7 +1236,7 @@ var AllProviderConfigs = []ComprehensiveTestConfig{
 			CompletionStream:           true,
 			MultiTurnConversation:      true,
 			ToolCalls:                  true,
-			ToolCallsStreaming:                  true,
+			ToolCallsStreaming:         true,
 			MultipleToolCalls:          true,
 			MultipleToolCallsStreaming: true,
 			End2EndToolCalling:         true,
@@ -1280,7 +1282,7 @@ var AllProviderConfigs = []ComprehensiveTestConfig{
 			CompletionStream:           true,
 			MultiTurnConversation:      true,
 			ToolCalls:                  true,
-			ToolCallsStreaming:                  true,
+			ToolCallsStreaming:         true,
 			MultipleToolCalls:          true,
 			MultipleToolCallsStreaming: true,
 			End2EndToolCalling:         true,
@@ -1359,7 +1361,7 @@ var AllProviderConfigs = []ComprehensiveTestConfig{
 			CompletionStream:           true,
 			MultiTurnConversation:      true,
 			ToolCalls:                  true,
-			ToolCallsStreaming:                  true,
+			ToolCallsStreaming:         true,
 			MultipleToolCalls:          true,
 			MultipleToolCallsStreaming: true,
 			End2EndToolCalling:         true,
@@ -1393,7 +1395,7 @@ var AllProviderConfigs = []ComprehensiveTestConfig{
 			CompletionStream:           true,
 			MultiTurnConversation:      true,
 			ToolCalls:                  true,
-			ToolCallsStreaming:                  true,
+			ToolCallsStreaming:         true,
 			MultipleToolCalls:          true,
 			MultipleToolCallsStreaming: true,
 			End2EndToolCalling:         true,
@@ -1436,7 +1438,7 @@ var AllProviderConfigs = []ComprehensiveTestConfig{
 			CompletionStream:           true,
 			MultiTurnConversation:      true,
 			ToolCalls:                  true,
-			ToolCallsStreaming:                  true,
+			ToolCallsStreaming:         true,
 			MultipleToolCalls:          true,
 			MultipleToolCallsStreaming: true,
 			End2EndToolCalling:         true,
