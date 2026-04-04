@@ -1,0 +1,113 @@
+package anthropic
+
+import (
+	"time"
+
+	providerUtils "github.com/maximhq/bifrost/core/providers/utils"
+	"github.com/maximhq/bifrost/core/schemas"
+)
+
+func (response *AnthropicListModelsResponse) ToBifrostListModelsResponse(providerKey schemas.ModelProvider, allowedModels []string, blacklistedModels []string, unfiltered bool) *schemas.BifrostListModelsResponse {
+	if response == nil {
+		return nil
+	}
+
+	bifrostResponse := &schemas.BifrostListModelsResponse{
+		Data:    make([]schemas.Model, 0, len(response.Data)),
+		FirstID: response.FirstID,
+		LastID:  response.LastID,
+		HasMore: schemas.Ptr(response.HasMore),
+	}
+
+	// Map Anthropic's cursor-based pagination to Bifrost's token-based pagination
+	// If there are more results, set next_page_token to last_id so it can be used in the next request
+	if response.HasMore && response.LastID != nil {
+		bifrostResponse.NextPageToken = *response.LastID
+	}
+
+	includedModels := make(map[string]bool)
+	for _, model := range response.Data {
+		modelID := model.ID
+		if !unfiltered && len(allowedModels) > 0 {
+			allowed := false
+			for _, allowedModel := range allowedModels {
+				if schemas.SameBaseModel(model.ID, allowedModel) {
+					modelID = allowedModel
+					allowed = true
+					break
+				}
+			}
+			if !allowed {
+				continue
+			}
+		}
+		if !unfiltered && providerUtils.ModelMatchesDenylist(blacklistedModels, modelID) {
+			continue
+		}
+		bifrostResponse.Data = append(bifrostResponse.Data, schemas.Model{
+			ID:              string(providerKey) + "/" + modelID,
+			Name:            schemas.Ptr(model.DisplayName),
+			Created:         schemas.Ptr(model.CreatedAt.Unix()),
+			MaxInputTokens:  model.MaxInputTokens,
+			MaxOutputTokens: model.MaxTokens,
+			ProviderExtra:   model.Capabilities,
+		})
+		includedModels[modelID] = true
+	}
+
+	// Backfill allowed models that were not in the response (skip blacklisted; blacklist wins over allow list)
+	if !unfiltered && len(allowedModels) > 0 {
+		for _, allowedModel := range allowedModels {
+			if providerUtils.ModelMatchesDenylist(blacklistedModels, allowedModel) {
+				continue
+			}
+			if !includedModels[allowedModel] {
+				bifrostResponse.Data = append(bifrostResponse.Data, schemas.Model{
+					ID:   string(providerKey) + "/" + allowedModel,
+					Name: schemas.Ptr(allowedModel),
+				})
+			}
+		}
+	}
+
+	return bifrostResponse
+}
+
+func ToAnthropicListModelsResponse(response *schemas.BifrostListModelsResponse) *AnthropicListModelsResponse {
+	if response == nil {
+		return nil
+	}
+
+	anthropicResponse := &AnthropicListModelsResponse{
+		Data: make([]AnthropicModel, 0, len(response.Data)),
+	}
+	if response.FirstID != nil {
+		anthropicResponse.FirstID = response.FirstID
+	}
+	if response.LastID != nil {
+		anthropicResponse.LastID = response.LastID
+	}
+	if response.HasMore != nil {
+		anthropicResponse.HasMore = *response.HasMore
+	}
+
+	for _, model := range response.Data {
+		_, modelID := schemas.ParseModelString(model.ID, schemas.Anthropic)
+		anthropicModel := AnthropicModel{
+			ID:             modelID,
+			Type:           "model",
+			MaxInputTokens: model.MaxInputTokens,
+			MaxTokens:      model.MaxOutputTokens,
+			Capabilities:   model.ProviderExtra,
+		}
+		if model.Name != nil {
+			anthropicModel.DisplayName = *model.Name
+		}
+		if model.Created != nil {
+			anthropicModel.CreatedAt = time.Unix(*model.Created, 0)
+		}
+		anthropicResponse.Data = append(anthropicResponse.Data, anthropicModel)
+	}
+
+	return anthropicResponse
+}
