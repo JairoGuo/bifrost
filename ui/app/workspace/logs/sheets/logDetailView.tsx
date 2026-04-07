@@ -48,7 +48,7 @@ import PluginLogsView from "../views/pluginLogsView";
 import SpeechView from "../views/speechView";
 import TranscriptionView from "../views/transcriptionView";
 import VideoView from "../views/videoView";
-import Link from "next/link";
+import { Link } from "@tanstack/react-router";
 
 const formatJsonSafe = (str: string | undefined): string => {
 	try {
@@ -288,7 +288,8 @@ export function LogDetailView({
 								label="Team"
 								value={
 									<Link
-										href={`/workspace/logs?team_ids=${encodeURIComponent(log.team_id)}`}
+										to="/workspace/logs"
+										search={{ team_ids: log.team_id }}
 										className="text-blue-600 hover:underline dark:text-blue-400"
 										data-testid="logdetails-team-link"
 									>
@@ -303,7 +304,8 @@ export function LogDetailView({
 								label="Customer"
 								value={
 									<Link
-										href={`/workspace/logs?customer_ids=${encodeURIComponent(log.customer_id)}`}
+										to="/workspace/logs"
+										search={{ customer_ids: log.customer_id }}
 										className="text-blue-600 hover:underline dark:text-blue-400"
 										data-testid="logdetails-customer-link"
 									>
@@ -318,7 +320,8 @@ export function LogDetailView({
 								label="Business Unit"
 								value={
 									<Link
-										href={`/workspace/logs?business_unit_ids=${encodeURIComponent(log.business_unit_id)}`}
+										to="/workspace/logs"
+										search={{ business_unit_ids: log.business_unit_id }}
 										className="text-blue-600 hover:underline dark:text-blue-400"
 										data-testid="logdetails-business-unit-link"
 									>
@@ -333,7 +336,8 @@ export function LogDetailView({
 								label="User"
 								value={
 									<Link
-										href={`/workspace/logs?user_ids=${encodeURIComponent(log.user_id)}`}
+										to="/workspace/logs"
+										search={{ user_ids: log.user_id }}
 										className="text-blue-600 hover:underline dark:text-blue-400"
 										data-testid="logdetails-user-link"
 									>

@@ -26,7 +26,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { AlertCircle, ArrowLeft, GitBranch, Info, Link2, Loader2, RotateCcw, Search } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useCookies } from "react-cookie";
 import { FIT_VIEW_PADDING, SCOPE_CONFIG, SCOPE_ORDER } from "./constants";
@@ -50,7 +50,7 @@ const edgeTypes = { rfChain: RfChainEdge };
 // ─── Main component ────────────────────────────────────────────────────────
 
 export function RoutingTreeView() {
-	const router = useRouter();
+	const navigate = useNavigate();
 	const { data, isLoading, isError } = useGetRoutingRulesQuery({ limit: 500 });
 	const rules = data?.rules ?? [];
 
@@ -351,7 +351,7 @@ export function RoutingTreeView() {
 			<div className="flex h-full flex-col items-center justify-center gap-3 text-muted-foreground">
 				<GitBranch className="h-10 w-10 opacity-20" />
 				<p className="text-sm">No routing rules to display</p>
-				<Button variant="outline" size="sm" onClick={() => router.push("/workspace/routing-rules")}>
+				<Button variant="outline" size="sm" onClick={() => navigate({ to: "/workspace/routing-rules" })}>
 					<ArrowLeft className="mr-1.5 h-4 w-4" />
 					Back to rules
 				</Button>
@@ -390,7 +390,7 @@ export function RoutingTreeView() {
 					<div className="flex items-center gap-3 rounded-md border bg-white dark:bg-card px-4 py-2.5 shadow-sm">
 						<Button
 							variant="ghost" size="sm" className="-ml-1 !pl-0 gap-1.5 hover:bg-transparent"
-							onClick={() => router.push("/workspace/routing-rules")}
+							onClick={() => navigate({ to: "/workspace/routing-rules" })}
 						>
 							<ArrowLeft className="h-4 w-4" />
 							Back
