@@ -409,8 +409,11 @@ func (provider *VertexProvider) ChatCompletion(ctx *schemas.BifrostContext, key 
 				if err != nil {
 					return nil, fmt.Errorf("failed to delete model field: %w", err)
 				}
-			} else if schemas.IsGeminiModel(request.Model) || schemas.IsAllDigitsASCII(request.Model) {
-				reqBody := gemini.ToGeminiChatCompletionRequest(request)
+			} else if schemas.IsGeminiModel(deployment) || schemas.IsAllDigitsASCII(deployment) {
+				reqBody, err := gemini.ToGeminiChatCompletionRequest(request)
+				if err != nil {
+					return nil, err
+				}
 				if reqBody == nil {
 					return nil, fmt.Errorf("chat completion input is not provided")
 				}
@@ -796,7 +799,10 @@ func (provider *VertexProvider) ChatCompletionStream(ctx *schemas.BifrostContext
 			ctx,
 			request,
 			func() (providerUtils.RequestBodyWithExtraParams, error) {
-				reqBody := gemini.ToGeminiChatCompletionRequest(request)
+				reqBody, err := gemini.ToGeminiChatCompletionRequest(request)
+				if err != nil {
+					return nil, err
+				}
 				if reqBody == nil {
 					return nil, fmt.Errorf("chat completion input is not provided")
 				}
@@ -1056,7 +1062,10 @@ func (provider *VertexProvider) Responses(ctx *schemas.BifrostContext, key schem
 			ctx,
 			request,
 			func() (providerUtils.RequestBodyWithExtraParams, error) {
-				reqBody := gemini.ToGeminiResponsesRequest(request)
+				reqBody, err := gemini.ToGeminiResponsesRequest(request)
+				if err != nil {
+					return nil, err
+				}
 				if reqBody == nil {
 					return nil, fmt.Errorf("responses input is not provided")
 				}
@@ -1272,7 +1281,10 @@ func (provider *VertexProvider) ResponsesStream(ctx *schemas.BifrostContext, pos
 			ctx,
 			request,
 			func() (providerUtils.RequestBodyWithExtraParams, error) {
-				reqBody := gemini.ToGeminiResponsesRequest(request)
+				reqBody, err := gemini.ToGeminiResponsesRequest(request)
+				if err != nil {
+					return nil, err
+				}
 				if reqBody == nil {
 					return nil, fmt.Errorf("responses input is not provided")
 				}
@@ -2561,7 +2573,7 @@ func (provider *VertexProvider) CountTokens(ctx *schemas.BifrostContext, key sch
 			ctx,
 			request,
 			func() (providerUtils.RequestBodyWithExtraParams, error) {
-				return gemini.ToGeminiResponsesRequest(request), nil
+				return gemini.ToGeminiResponsesRequest(request)
 			},
 		)
 		if bifrostErr != nil {

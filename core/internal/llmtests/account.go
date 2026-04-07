@@ -168,6 +168,7 @@ func (account *ComprehensiveTestAccount) GetConfiguredProviders() ([]schemas.Mod
 		schemas.Replicate,
 		schemas.VLLM,
 		schemas.Runway,
+		schemas.Fireworks,
 		ProviderOpenAICustom,
 	}, nil
 }
@@ -456,6 +457,15 @@ func (account *ComprehensiveTestAccount) GetKeysForProvider(ctx context.Context,
 			{
 				Value:          *schemas.NewEnvVar("env.RUNWAY_API_KEY"),
 				Models:         []string{"*"},
+				Weight:         1.0,
+				UseForBatchAPI: bifrost.Ptr(true),
+			},
+		}, nil
+	case schemas.Fireworks:
+		return []schemas.Key{
+			{
+				Value:          *schemas.NewEnvVar("env.FIREWORKS_API_KEY"),
+				Models:         []string{},
 				Weight:         1.0,
 				UseForBatchAPI: bifrost.Ptr(true),
 			},
@@ -775,6 +785,19 @@ func (account *ComprehensiveTestAccount) GetConfigForProvider(providerKey schema
 		return &schemas.ProviderConfig{
 			NetworkConfig: schemas.NetworkConfig{
 				DefaultRequestTimeoutInSeconds: 300,
+				MaxRetries:                     10,
+				RetryBackoffInitial:            1 * time.Second,
+				RetryBackoffMax:                12 * time.Second,
+			},
+			ConcurrencyAndBufferSize: schemas.ConcurrencyAndBufferSize{
+				Concurrency: Concurrency,
+				BufferSize:  10,
+			},
+		}, nil
+	case schemas.Fireworks:
+		return &schemas.ProviderConfig{
+			NetworkConfig: schemas.NetworkConfig{
+				DefaultRequestTimeoutInSeconds: 120,
 				MaxRetries:                     10,
 				RetryBackoffInitial:            1 * time.Second,
 				RetryBackoffMax:                12 * time.Second,
@@ -1181,6 +1204,36 @@ var AllProviderConfigs = []ComprehensiveTestConfig{
 		},
 		Fallbacks: []schemas.Fallback{
 			{Provider: schemas.OpenAI, Model: "gpt-4o-mini"},
+		},
+	},
+	{
+		Provider:       schemas.Fireworks,
+		ChatModel:      "accounts/fireworks/models/deepseek-v3p2",
+		TextModel:      "accounts/fireworks/models/deepseek-v3p2",
+		EmbeddingModel: "nomic-ai/nomic-embed-text-v1.5",
+		Scenarios: TestScenarios{
+			TextCompletion:        true,
+			TextCompletionStream:  true,
+			SimpleChat:            true,
+			CompletionStream:      true,
+			MultiTurnConversation: true,
+			ToolCalls:             true,
+			ToolCallsStreaming:    true,
+			MultipleToolCalls:     false,
+			End2EndToolCalling:    false,
+			AutomaticFunctionCall: false,
+			ImageURL:              false,
+			ImageBase64:           false,
+			MultipleImages:        false,
+			FileBase64:            false,
+			FileURL:               false,
+			CompleteEnd2End:       true,
+			Embedding:             true,
+			ListModels:            true,
+			Reasoning:             false,
+			Transcription:         false,
+			SpeechSynthesis:       false,
+			PromptCaching:         false,
 		},
 	},
 	{

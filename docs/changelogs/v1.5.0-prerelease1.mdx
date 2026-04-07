@@ -51,7 +51,10 @@ This prerelease introduces 9 breaking changes. See the **[v1.5.0 Migration Guide
 | [6](/migration-guides/v1.5.0#breaking-change-6-provider-keys-api-separated) | Provider keys API separated — `keys` removed from provider payloads | REST API |
 | [7](/migration-guides/v1.5.0#breaking-change-7-compact-plugin-restructured) | Compact plugin: `enable_litellm_fallbacks` replaced by three granular options | Plugin config |
 | [8](/migration-guides/v1.5.0#breaking-change-8-replicate-image-edits-removed-from-generations-endpoint) | Replicate image edits removed from `/v1/images/generations` | REST API |
+| [9](/migration-guides/v1.5.0#breaking-change-9-ollama-and-sgl-per-key-url-configuration) | Ollama and SGL moved to per-key URL configuration | `config.json`, REST API |
+| [10](/migration-guides/v1.5.0#breaking-change-10-go-sdk-changes) | Go SDK: `HuggingFaceKeyConfig` removed, `providerRequiresKey()` signature changed | Go SDK |
 
+---
 </Update>
 <Update label="Core" description="1.5.0">
 - feat: add DisableAutoToolInject to MCPToolManagerConfig to suppress automatic MCP tool injection per request

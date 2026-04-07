@@ -595,9 +595,10 @@ func isRealtimeTransportEndpoint(path string) bool {
 
 // AuthMiddleware is a middleware that handles authentication for the API.
 type AuthMiddleware struct {
-	store         configstore.ConfigStore
-	authConfig    atomic.Pointer[configstore.AuthConfig]
-	wsTicketStore *WSTicketStore
+	store             configstore.ConfigStore
+	whitelistedRoutes atomic.Pointer[[]string]
+	authConfig        atomic.Pointer[configstore.AuthConfig]
+	wsTicketStore     *WSTicketStore
 }
 
 // InitAuthMiddleware initializes the auth middleware.
@@ -614,12 +615,28 @@ func InitAuthMiddleware(store configstore.ConfigStore, wsTicketStore *WSTicketSt
 		authConfig:    atomic.Pointer[configstore.AuthConfig]{},
 		wsTicketStore: wsTicketStore,
 	}
+
 	am.authConfig.Store(authConfig)
+
+	// Load whitelisted routes from client config
+	clientConfig, err := store.GetClientConfig(context.Background())
+	if err == nil && clientConfig != nil {
+		am.whitelistedRoutes.Store(&clientConfig.WhitelistedRoutes)
+	} else {
+		emptyRoutes := []string{}
+		am.whitelistedRoutes.Store(&emptyRoutes)
+	}
+
 	return am, nil
 }
 
 func (m *AuthMiddleware) UpdateAuthConfig(authConfig *configstore.AuthConfig) {
 	m.authConfig.Store(authConfig)
+}
+
+// UpdateWhitelistedRoutes updates the configured whitelisted routes that bypass auth middleware.
+func (m *AuthMiddleware) UpdateWhitelistedRoutes(routes []string) {
+	m.whitelistedRoutes.Store(&routes)
 }
 
 // InferenceMiddleware is for inference requests (including MCP routes) if authConfig is set, it will skip authentication if disableAuthOnInference is true.
@@ -638,7 +655,7 @@ func (m *AuthMiddleware) InferenceMiddleware() schemas.BifrostHTTPMiddleware {
 // Basic auth may be acceptable for limited use cases, while Bearer and WebSocket flows provide
 // session-based authentication suitable for production environments.
 func (m *AuthMiddleware) APIMiddleware() schemas.BifrostHTTPMiddleware {
-	whitelistedRoutes := []string{
+	systemWhitelistedRoutes := []string{
 		"/api/session/is-auth-enabled",
 		"/api/session/login",
 		"/api/oauth/callback",
@@ -648,11 +665,22 @@ func (m *AuthMiddleware) APIMiddleware() schemas.BifrostHTTPMiddleware {
 		"/api/oauth/callback",
 	}
 	return m.middleware(func(authConfig *configstore.AuthConfig, url string) bool {
-		if slices.Contains(whitelistedRoutes, url) ||
+		if slices.Contains(systemWhitelistedRoutes, url) ||
 			slices.IndexFunc(whitelistedPrefixes, func(prefix string) bool {
 				return strings.HasPrefix(url, prefix)
 			}) != -1 {
 			return true
+		}
+		// Check user-configured whitelisted routes
+		if configuredRoutes := m.whitelistedRoutes.Load(); configuredRoutes != nil {
+			if slices.Contains(*configuredRoutes, url) || slices.IndexFunc(*configuredRoutes, func(route string) bool {
+				if strings.HasSuffix(route, "*") {
+					return strings.HasPrefix(url, strings.TrimSuffix(route, "*"))
+				}
+				return false
+			}) != -1 {
+				return true
+			}
 		}
 		return false
 	})
