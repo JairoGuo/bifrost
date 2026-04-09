@@ -351,6 +351,7 @@ func applyOutputFieldsToEntry(
 	selectedKeyID, selectedKeyName string,
 	virtualKeyID, virtualKeyName string,
 	routingRuleID, routingRuleName string,
+	selectedPromptName, selectedPromptVersion string,
 	teamID, teamName string,
 	customerID, customerName string,
 	userID string,
@@ -371,6 +372,12 @@ func applyOutputFieldsToEntry(
 	}
 	if routingRuleName != "" {
 		entry.RoutingRuleName = &routingRuleName
+	}
+	if selectedPromptName != "" {
+		entry.SelectedPromptName = selectedPromptName
+	}
+	if selectedPromptVersion != "" {
+		entry.SelectedPromptVersion = selectedPromptVersion
 	}
 	if teamID != "" {
 		entry.TeamID = &teamID
