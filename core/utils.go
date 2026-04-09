@@ -133,15 +133,15 @@ func validateRequest(req *schemas.BifrostRequest) *schemas.BifrostError {
 }
 
 // validateKey validates the given key.
-func validateKey(providerKey schemas.ModelProvider, key *schemas.Key) bool {
+func validateKey(providerKey schemas.ModelProvider, key *schemas.Key) error {
 	// Valid the key for the provider
 	switch providerKey {
 	case schemas.Azure:
 		if key.AzureKeyConfig == nil {
-			return false
+			return fmt.Errorf("azure_key_config is required")
 		}
 		if key.AzureKeyConfig.Endpoint.GetValue() == "" {
-			return false
+			return fmt.Errorf("endpoint in azure_key_config is required")
 		}
 	case schemas.Bedrock:
 		// Key is valid if either:
@@ -149,32 +149,32 @@ func validateKey(providerKey schemas.ModelProvider, key *schemas.Key) bool {
 		// 2. Value is provided and is not empty
 		if key.BedrockKeyConfig == nil {
 			if key.Value.GetValue() == "" {
-				return false
+				return fmt.Errorf("either value in key or bedrock_key_config is required")
 			}
 			key.BedrockKeyConfig = &schemas.BedrockKeyConfig{}
 		}
 	case schemas.Vertex:
 		if key.VertexKeyConfig == nil {
-			return false
+			return fmt.Errorf("vertex_key_config is required")
 		}
 	case schemas.Replicate:
 		if key.ReplicateKeyConfig == nil {
-			return false
+			return fmt.Errorf("replicate_key_config is required")
 		}
 	case schemas.VLLM:
 		if key.VLLMKeyConfig == nil || key.VLLMKeyConfig.URL.GetValue() == "" {
-			return false
+			return fmt.Errorf("vllm_key_config is required")
 		}
 	case schemas.Ollama:
 		if key.OllamaKeyConfig == nil || key.OllamaKeyConfig.URL.GetValue() == "" {
-			return false
+			return fmt.Errorf("ollama_key_config is required")
 		}
 	case schemas.SGL:
 		if key.SGLKeyConfig == nil || key.SGLKeyConfig.URL.GetValue() == "" {
-			return false
+			return fmt.Errorf("sgl_key_config is required")
 		}
 	}
-	return true
+	return nil
 }
 
 // IsRateLimitErrorMessage checks if an error message indicates a rate limit issue

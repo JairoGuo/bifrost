@@ -6253,17 +6253,21 @@ func (bifrost *Bifrost) getAllSupportedKeys(ctx *schemas.BifrostContext, provide
 
 	// Filter keys for ListModels - only check if key has a value
 	var supportedKeys []schemas.Key
-	for _, k := range keys {
+	for _, key := range keys {
 		// Skip disabled keys (default enabled when nil)
-		if k.Enabled != nil && !*k.Enabled {
+		if key.Enabled != nil && !*key.Enabled {
 			continue
 		}
-		if strings.TrimSpace(k.Value.GetValue()) != "" || CanProviderKeyValueBeEmpty(baseProviderType) {
-			supportedKeys = append(supportedKeys, k)
+		if err := validateKey(providerKey, &key); err != nil {
+			bifrost.logger.Warn("error validating key %s (%s) for provider %s: %s, skipping key", key.Name, key.ID, providerKey, err.Error())
+			continue
+		}
+		if strings.TrimSpace(key.Value.GetValue()) != "" || CanProviderKeyValueBeEmpty(baseProviderType) {
+			supportedKeys = append(supportedKeys, key)
 		}
 	}
 
-	bifrost.logger.Debug("[Bifrost] Provider %s: %d enabled keys found", providerKey, len(supportedKeys))
+	bifrost.logger.Debug("[Bifrost] Provider %s: %d valid keys found", providerKey, len(supportedKeys))
 
 	if len(supportedKeys) == 0 {
 		return nil, fmt.Errorf("no valid keys found for provider: %v", providerKey)
@@ -6397,9 +6401,8 @@ func (bifrost *Bifrost) selectKeyFromProviderForModel(ctx *schemas.BifrostContex
 			if key.Enabled != nil && !*key.Enabled {
 				continue
 			}
-			isKeyValid := validateKey(providerKey, &key)
-			if !isKeyValid {
-				bifrost.logger.Warn("key %s is not valid for provider: %s", key.ID, providerKey)
+			if err := validateKey(providerKey, &key); err != nil {
+				bifrost.logger.Warn("error validating key %s (%s) for provider %s: %s, skipping key", key.Name, key.ID, providerKey, err.Error())
 				continue
 			}
 			if strings.TrimSpace(key.Value.GetValue()) != "" || CanProviderKeyValueBeEmpty(baseProviderType) {
@@ -6413,9 +6416,8 @@ func (bifrost *Bifrost) selectKeyFromProviderForModel(ctx *schemas.BifrostContex
 			if key.Enabled != nil && !*key.Enabled {
 				continue
 			}
-			isKeyValid := validateKey(providerKey, &key)
-			if !isKeyValid {
-				bifrost.logger.Warn("key %s is not valid for provider: %s", key.ID, providerKey)
+			if err := validateKey(providerKey, &key); err != nil {
+				bifrost.logger.Warn("error validating key %s (%s) for provider %s: %s, skipping key", key.Name, key.ID, providerKey, err.Error())
 				continue
 			}
 			hasValue := strings.TrimSpace(key.Value.GetValue()) != "" || CanProviderKeyValueBeEmpty(baseProviderType)
