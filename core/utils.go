@@ -157,10 +157,6 @@ func validateKey(providerKey schemas.ModelProvider, key *schemas.Key) bool {
 		if key.VertexKeyConfig == nil {
 			return false
 		}
-	case schemas.Replicate:
-		if key.ReplicateKeyConfig == nil {
-			return false
-		}
 	case schemas.VLLM:
 		if key.VLLMKeyConfig == nil || key.VLLMKeyConfig.URL.GetValue() == "" {
 			return false
