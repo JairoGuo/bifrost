@@ -14,6 +14,7 @@ import (
 	bifrost "github.com/maximhq/bifrost/core"
 	"github.com/maximhq/bifrost/core/schemas"
 	"github.com/maximhq/bifrost/framework/configstore/tables"
+	"github.com/maximhq/bifrost/framework/encrypt"
 	"github.com/maximhq/bifrost/framework/migrator"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -3596,6 +3597,45 @@ func migrationDropDeploymentColumnsAndAddAliases(ctx context.Context, db *gorm.D
 				if m.HasColumn(&tables.TableKey{}, col) {
 					if err := tx.Exec("ALTER TABLE config_keys DROP COLUMN " + col).Error; err != nil {
 						return err
+					}
+				}
+			}
+
+			// Encrypt aliases_json for rows where encryption_status is already 'encrypted'.
+			// The raw SQL copy above preserved the original column's encryption state:
+			// - bedrock_deployments_json was encrypted -> aliases_json is already encrypted
+			// - azure/vertex/replicate were never encrypted -> aliases_json is plaintext
+			// AfterFind will try to decrypt aliases_json for encrypted rows, so we must
+			// encrypt any plaintext values first.
+			if encrypt.IsEnabled() {
+				type aliasRow struct {
+					ID          uint
+					AliasesJSON *string
+				}
+				var plainRows []aliasRow
+				if err := tx.Raw(
+					"SELECT id, aliases_json FROM config_keys WHERE encryption_status = ? AND aliases_json IS NOT NULL AND aliases_json != '' AND aliases_json != '{}'",
+					tables.EncryptionStatusEncrypted,
+				).Scan(&plainRows).Error; err != nil {
+					return fmt.Errorf("failed to fetch aliases for encryption fixup: %w", err)
+				}
+				for _, row := range plainRows {
+					if row.AliasesJSON == nil || *row.AliasesJSON == "" {
+						continue
+					}
+					// If Decrypt succeeds, the value is already encrypted — skip it (bedrock case).
+					// If Decrypt fails, the value is plaintext — encrypt it.
+					if _, err := encrypt.Decrypt(*row.AliasesJSON); err != nil {
+						encrypted, encErr := encrypt.Encrypt(*row.AliasesJSON)
+						if encErr != nil {
+							return fmt.Errorf("failed to encrypt aliases for key %d: %w", row.ID, encErr)
+						}
+						if err := tx.Exec(
+							"UPDATE config_keys SET aliases_json = ? WHERE id = ?",
+							encrypted, row.ID,
+						).Error; err != nil {
+							return fmt.Errorf("failed to update encrypted aliases for key %d: %w", row.ID, err)
+						}
 					}
 				}
 			}
