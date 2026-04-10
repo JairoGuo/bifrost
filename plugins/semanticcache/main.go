@@ -208,12 +208,6 @@ type PluginAccount struct {
 }
 
 func (pa *PluginAccount) GetConfiguredProviders() ([]schemas.ModelProvider, error) {
-	if pa.baseAccount != nil {
-		providers, err := pa.baseAccount.GetConfiguredProviders()
-		if err == nil && len(providers) > 0 {
-			return providers, nil
-		}
-	}
 	return []schemas.ModelProvider{pa.provider}, nil
 }
 
