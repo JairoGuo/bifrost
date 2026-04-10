@@ -92,7 +92,7 @@ func loadBuiltinPlugin(ctx context.Context, name string, pluginConfig any, bifro
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal semantic cache plugin config: %w", err)
 		}
-		return semanticcache.Init(ctx, semanticConfig, logger, bifrostConfig.VectorStore)
+		return semanticcache.Init(ctx, semanticConfig, logger, bifrostConfig.VectorStore, lib.NewBaseAccount(bifrostConfig))
 
 	case otel.PluginName:
 		otelConfig, err := MarshalPluginConfig[otel.Config](pluginConfig)
@@ -221,7 +221,6 @@ func (s *BifrostHTTPServer) loadBuiltinPlugins(ctx context.Context) error {
 
 	return nil
 }
-
 
 // loadCustomPlugins loads plugins from PluginConfigs
 func (s *BifrostHTTPServer) loadCustomPlugins(ctx context.Context) error {

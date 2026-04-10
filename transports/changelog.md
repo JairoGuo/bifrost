@@ -5,6 +5,7 @@
 
 ## 🐞 Fixed
 
+- **Semantic Cache Custom Providers** — Passed provider account config into semantic cache initialization
 - **Reasoning Content Leak** — Prevented reasoning text from leaking into Gemini response content
 - **Timeout Status Code** — Fixed timeout status code handling across all providers
 - **Cross-Provider Cache** — Preserved cached provider metadata on cross-provider cache hits
