@@ -407,7 +407,7 @@ func TestCacheConfiguration(t *testing.T) {
 				Dimension:      1536,
 				Threshold:      0.95, // Very high threshold
 				Keys: []schemas.Key{
-					{Value: *schemas.NewEnvVar("env.OPENAI_API_KEY"), Models: []string{}, Weight: 1.0},
+					{Value: *schemas.NewEnvVar("env.OPENAI_API_KEY"), Models: schemas.WhiteList{"*"}, Weight: 1.0},
 				},
 			},
 			expectedBehavior: "strict_matching",
@@ -420,7 +420,7 @@ func TestCacheConfiguration(t *testing.T) {
 				Dimension:      1536,
 				Threshold:      0.1, // Very low threshold
 				Keys: []schemas.Key{
-					{Value: *schemas.NewEnvVar("env.OPENAI_API_KEY"), Models: []string{}, Weight: 1.0},
+					{Value: *schemas.NewEnvVar("env.OPENAI_API_KEY"), Models: schemas.WhiteList{"*"}, Weight: 1.0},
 				},
 			},
 			expectedBehavior: "loose_matching",
@@ -434,7 +434,7 @@ func TestCacheConfiguration(t *testing.T) {
 				Threshold:      0.8,
 				TTL:            1 * time.Hour, // Custom TTL
 				Keys: []schemas.Key{
-					{Value: *schemas.NewEnvVar("env.OPENAI_API_KEY"), Models: []string{}, Weight: 1.0},
+					{Value: *schemas.NewEnvVar("env.OPENAI_API_KEY"), Models: schemas.WhiteList{"*"}, Weight: 1.0},
 				},
 			},
 			expectedBehavior: "custom_ttl",
@@ -567,7 +567,7 @@ func TestInvalidProviderRejection(t *testing.T) {
 				Keys: []schemas.Key{
 					{
 						Value:  *schemas.NewEnvVar("env.TEST_API_KEY"),
-						Models: []string{},
+						Models: schemas.WhiteList{"*"},
 						Weight: 1.0,
 					},
 				},
@@ -604,7 +604,7 @@ func TestValidProviderAccepted(t *testing.T) {
 		Keys: []schemas.Key{
 			{
 				Value:  *schemas.NewEnvVar("env.OPENAI_API_KEY"),
-				Models: []string{},
+				Models: schemas.WhiteList{"*"},
 				Weight: 1.0,
 			},
 		},
